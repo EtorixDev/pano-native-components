@@ -64,7 +64,7 @@ fn compute_icon(png_bytes: &[u8], invert: bool) -> (Option<Icon>, u64) {
 }
 impl ksni::Tray for PanoTray {
     fn id(&self) -> String {
-        "com.arn.scrobble.tray".into()
+        "dev.etorix.panoscrobbler.tray".into()
     }
 
     fn icon_pixmap(&self) -> Vec<Icon> {

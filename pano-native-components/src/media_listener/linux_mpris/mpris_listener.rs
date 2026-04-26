@@ -220,7 +220,7 @@ pub async fn listener(
                     if let Ok(proxy) = proxy {
                         let _ = proxy
                             .add_notification(
-                                "com.arn.scrobble",
+                                "dev.etorix.panoscrobbler",
                                 Notification::new(title)
                                     .body(body.as_str())
                                     .priority(Priority::Normal)

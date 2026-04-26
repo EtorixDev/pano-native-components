@@ -11,7 +11,7 @@ use jni::sys::jint;
 use crate::webview_event::{WebViewIncomingEvent, WebViewOutgoingEvent};
 
 #[unsafe(no_mangle)]
-pub extern "system" fn Java_com_arn_scrobble_DesktopWebView_startEventLoop(
+pub extern "system" fn Java_dev_etorix_panoscrobbler_DesktopWebView_startEventLoop(
     mut unowned_env: EnvUnowned,
     _class: JClass,
 ) {
@@ -29,7 +29,7 @@ pub extern "system" fn Java_com_arn_scrobble_DesktopWebView_startEventLoop(
             let jvm = env.get_java_vm()?;
             tao_loop::event_loop(move |event| {
                 jvm.attach_current_thread(|env| -> jni::errors::Result<()> {
-                    let class = jni_str!("com/arn/scrobble/DesktopWebView");
+                    let class = jni_str!("dev/etorix/panoscrobbler/DesktopWebView");
 
                     match event {
                         WebViewOutgoingEvent::WebViewCallback(url, cookies_vec) => {
@@ -64,7 +64,7 @@ pub extern "system" fn Java_com_arn_scrobble_DesktopWebView_startEventLoop(
 }
 
 #[unsafe(no_mangle)]
-pub extern "system" fn Java_com_arn_scrobble_DesktopWebView_launchWebView(
+pub extern "system" fn Java_dev_etorix_panoscrobbler_DesktopWebView_launchWebView(
     mut unowned_env: EnvUnowned,
     _class: JClass,
     url: JString,
@@ -96,7 +96,7 @@ pub extern "system" fn Java_com_arn_scrobble_DesktopWebView_launchWebView(
 }
 
 #[unsafe(no_mangle)]
-pub extern "system" fn Java_com_arn_scrobble_DesktopWebView_deleteAndQuit(
+pub extern "system" fn Java_dev_etorix_panoscrobbler_DesktopWebView_deleteAndQuit(
     _env: EnvUnowned,
     _class: JClass,
 ) {

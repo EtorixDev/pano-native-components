@@ -1,4 +1,4 @@
-package com.arn.scrobble;
+package dev.etorix.panoscrobbler;
 
 import java.util.ArrayList;
 import java.util.Arrays;

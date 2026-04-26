@@ -114,7 +114,7 @@ pub async fn listener(
                 IncomingEvent::Notification(title, body) => {
                     let mut notification = Notification::new();
 
-                    const AUMID: &str = "com.arn.scrobble";
+                    const AUMID: &str = "dev.etorix.panoscrobbler";
 
                     notification
                         .summary(&title)

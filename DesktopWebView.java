@@ -1,4 +1,4 @@
-package com.arn.scrobble;
+package dev.etorix.panoscrobbler;
 
 // all params should be non null
 // this class is just useed for testing
@@ -15,8 +15,14 @@ public class DesktopWebView {
     }
 
     public static void main(String[] args) {
-
-        launchWebView("https://fonts.google.com", "callbackPrefix", "/tmp/webview", "", 0);
+        launchWebView(
+                "https://fonts.google.com",
+                "callbackPrefix",
+                "https://fonts.google.com",
+                "/tmp/webview",
+                "",
+                0
+        );
         
         new Thread(new Runnable() {
             @Override
@@ -31,14 +37,7 @@ public class DesktopWebView {
             e.printStackTrace();
         }
 
-        getWebViewCookiesFor("https://fonts.google.com");
-
-        try {
-            Thread.sleep(5000);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-        quitWebView();
+        deleteAndQuit();
     }
 
     public static void onCallback(String url, String[] cookies) {

@@ -15,13 +15,13 @@ Linux needs additional dependencies listed at [tauri-apps/wry](https://github.co
 ```
 javac -h . PanoNativeComponents.java
 
-cargo build --release && javac -d . PanoNativeComponents.java && java -Djava.library.path=target/release/ com.arn.scrobble.PanoNativeComponents
+cargo build --release && javac -d . PanoNativeComponents.java && java -Djava.library.path=target/release/ dev.etorix.panoscrobbler.PanoNativeComponents
 ```
 
 or (if Powershell)
 
 ```
-cargo build --release && javac -d . PanoNativeComponents.java && java "-Djava.library.path=target/release/" com.arn.scrobble.PanoNativeComponents
+cargo build --release && javac -d . PanoNativeComponents.java && java "-Djava.library.path=target/release/" dev.etorix.panoscrobbler.PanoNativeComponents
 ```
 
 ### Package

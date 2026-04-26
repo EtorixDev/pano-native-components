@@ -37,7 +37,7 @@ static INCOMING_PLAYER_EVENT_TX: LazyLock<Mutex<Option<mpsc::Sender<IncomingEven
     LazyLock::new(|| Mutex::new(None));
 
 #[unsafe(no_mangle)]
-pub extern "system" fn Java_com_arn_scrobble_PanoNativeComponents_refreshSessions(
+pub extern "system" fn Java_dev_etorix_panoscrobbler_PanoNativeComponents_refreshSessions(
     _env: EnvUnowned,
     _class: JClass,
 ) {
@@ -45,7 +45,7 @@ pub extern "system" fn Java_com_arn_scrobble_PanoNativeComponents_refreshSession
 }
 
 #[unsafe(no_mangle)]
-pub extern "system" fn Java_com_arn_scrobble_PanoNativeComponents_setLogFilePath(
+pub extern "system" fn Java_dev_etorix_panoscrobbler_PanoNativeComponents_setLogFilePath(
     mut unowned_env: EnvUnowned,
     _class: JClass,
     path: JString,
@@ -73,7 +73,7 @@ pub extern "system" fn Java_com_arn_scrobble_PanoNativeComponents_setLogFilePath
 }
 
 #[unsafe(no_mangle)]
-pub extern "system" fn Java_com_arn_scrobble_PanoNativeComponents_stopListeningMedia(
+pub extern "system" fn Java_dev_etorix_panoscrobbler_PanoNativeComponents_stopListeningMedia(
     _env: EnvUnowned,
     _class: JClass,
 ) {
@@ -81,7 +81,7 @@ pub extern "system" fn Java_com_arn_scrobble_PanoNativeComponents_stopListeningM
 }
 
 #[unsafe(no_mangle)]
-pub extern "system" fn Java_com_arn_scrobble_PanoNativeComponents_setEnvironmentVariable(
+pub extern "system" fn Java_dev_etorix_panoscrobbler_PanoNativeComponents_setEnvironmentVariable(
     mut unowned_env: EnvUnowned,
     _class: JClass,
     key: JString,
@@ -100,7 +100,7 @@ pub extern "system" fn Java_com_arn_scrobble_PanoNativeComponents_setEnvironment
 }
 
 #[unsafe(no_mangle)]
-pub extern "system" fn Java_com_arn_scrobble_PanoNativeComponents_skip(
+pub extern "system" fn Java_dev_etorix_panoscrobbler_PanoNativeComponents_skip(
     mut unowned_env: EnvUnowned,
     _class: JClass,
     app_id: JString,
@@ -115,7 +115,7 @@ pub extern "system" fn Java_com_arn_scrobble_PanoNativeComponents_skip(
 }
 
 #[unsafe(no_mangle)]
-pub extern "system" fn Java_com_arn_scrobble_PanoNativeComponents_mute(
+pub extern "system" fn Java_dev_etorix_panoscrobbler_PanoNativeComponents_mute(
     mut unowned_env: EnvUnowned,
     _class: JClass,
     app_id: JString,
@@ -130,7 +130,7 @@ pub extern "system" fn Java_com_arn_scrobble_PanoNativeComponents_mute(
 }
 
 #[unsafe(no_mangle)]
-pub extern "system" fn Java_com_arn_scrobble_PanoNativeComponents_unmute(
+pub extern "system" fn Java_dev_etorix_panoscrobbler_PanoNativeComponents_unmute(
     mut unowned_env: EnvUnowned,
     _class: JClass,
     app_id: JString,
@@ -145,7 +145,7 @@ pub extern "system" fn Java_com_arn_scrobble_PanoNativeComponents_unmute(
 }
 
 #[unsafe(no_mangle)]
-pub extern "system" fn Java_com_arn_scrobble_PanoNativeComponents_notify(
+pub extern "system" fn Java_dev_etorix_panoscrobbler_PanoNativeComponents_notify(
     mut unowned_env: EnvUnowned,
     _class: JClass,
     title: JString,
@@ -162,7 +162,7 @@ pub extern "system" fn Java_com_arn_scrobble_PanoNativeComponents_notify(
 }
 
 #[unsafe(no_mangle)]
-pub extern "system" fn Java_com_arn_scrobble_PanoNativeComponents_setTrayLinux(
+pub extern "system" fn Java_dev_etorix_panoscrobbler_PanoNativeComponents_setTrayLinux(
     mut unowned_env: EnvUnowned,
     _class: JClass,
     tooltip: JString,
@@ -209,7 +209,7 @@ pub extern "system" fn Java_com_arn_scrobble_PanoNativeComponents_setTrayLinux(
 }
 
 #[unsafe(no_mangle)]
-pub extern "system" fn Java_com_arn_scrobble_PanoNativeComponents_getMachineId<'local>(
+pub extern "system" fn Java_dev_etorix_panoscrobbler_PanoNativeComponents_getMachineId<'local>(
     mut unowned_env: EnvUnowned<'local>,
     _class: JClass<'local>,
 ) -> JString<'local> {
@@ -222,7 +222,7 @@ pub extern "system" fn Java_com_arn_scrobble_PanoNativeComponents_getMachineId<'
 }
 
 #[unsafe(no_mangle)]
-pub extern "system" fn Java_com_arn_scrobble_PanoNativeComponents_applyDarkModeWindows(
+pub extern "system" fn Java_dev_etorix_panoscrobbler_PanoNativeComponents_applyDarkModeWindows(
     _env: EnvUnowned,
     _class: JClass,
     handle: jlong,
@@ -232,7 +232,7 @@ pub extern "system" fn Java_com_arn_scrobble_PanoNativeComponents_applyDarkModeW
 }
 
 #[unsafe(no_mangle)]
-pub extern "system" fn Java_com_arn_scrobble_PanoNativeComponents_sendIpcCommand(
+pub extern "system" fn Java_dev_etorix_panoscrobbler_PanoNativeComponents_sendIpcCommand(
     mut unowned_env: EnvUnowned,
     _class: JClass,
     command: JString,
@@ -256,7 +256,7 @@ pub extern "system" fn Java_com_arn_scrobble_PanoNativeComponents_sendIpcCommand
 }
 
 #[unsafe(no_mangle)]
-pub extern "system" fn Java_com_arn_scrobble_PanoNativeComponents_isFileLockedWindows(
+pub extern "system" fn Java_dev_etorix_panoscrobbler_PanoNativeComponents_isFileLockedWindows(
     mut unowned_env: EnvUnowned,
     _class: JClass,
     path: JString,
@@ -293,7 +293,7 @@ pub fn send_incoming_event(incoming_event: IncomingEvent) {
 }
 
 fn call_java_fn(env: &mut jni::Env, event: &JniCallback) -> Option<bool> {
-    let class = jni_str!("com/arn/scrobble/PanoNativeComponents");
+    let class = jni_str!("dev/etorix/panoscrobbler/PanoNativeComponents");
 
     let result = match event {
         JniCallback::SessionsChanged(session_infos) => {
@@ -434,7 +434,7 @@ fn call_java_fn(env: &mut jni::Env, event: &JniCallback) -> Option<bool> {
 }
 
 #[unsafe(no_mangle)]
-pub extern "system" fn Java_com_arn_scrobble_PanoNativeComponents_startListeningMedia(
+pub extern "system" fn Java_dev_etorix_panoscrobbler_PanoNativeComponents_startListeningMedia(
     mut unowned_env: EnvUnowned,
     _class: JClass,
 ) {
@@ -456,7 +456,7 @@ pub extern "system" fn Java_com_arn_scrobble_PanoNativeComponents_startListening
 }
 
 #[unsafe(no_mangle)]
-pub extern "system" fn Java_com_arn_scrobble_PanoNativeComponents_updateDiscordActivity(
+pub extern "system" fn Java_dev_etorix_panoscrobbler_PanoNativeComponents_updateDiscordActivity(
     mut unowned_env: EnvUnowned,
     _class: JClass,
     client_id: JString,
@@ -509,7 +509,7 @@ pub extern "system" fn Java_com_arn_scrobble_PanoNativeComponents_updateDiscordA
 }
 
 #[unsafe(no_mangle)]
-pub extern "system" fn Java_com_arn_scrobble_PanoNativeComponents_clearDiscordActivity(
+pub extern "system" fn Java_dev_etorix_panoscrobbler_PanoNativeComponents_clearDiscordActivity(
     _env: EnvUnowned,
     _class: JClass,
     shutdown: jboolean,
@@ -518,7 +518,7 @@ pub extern "system" fn Java_com_arn_scrobble_PanoNativeComponents_clearDiscordAc
 }
 
 #[unsafe(no_mangle)]
-pub extern "system" fn Java_com_arn_scrobble_PanoNativeComponents_fileChooserLinux(
+pub extern "system" fn Java_dev_etorix_panoscrobbler_PanoNativeComponents_fileChooserLinux(
     mut unowned_env: EnvUnowned,
     _class: JClass,
     request_id: jint,
@@ -555,7 +555,7 @@ pub extern "system" fn Java_com_arn_scrobble_PanoNativeComponents_fileChooserLin
 }
 
 #[unsafe(no_mangle)]
-pub extern "system" fn Java_com_arn_scrobble_PanoNativeComponents_autoStartLinux(
+pub extern "system" fn Java_dev_etorix_panoscrobbler_PanoNativeComponents_autoStartLinux(
     _env: EnvUnowned,
     _class: JClass,
     add: jboolean,
