@@ -10,7 +10,7 @@ use {
     },
 };
 
-const PIPE_NAME: &str = "pano-scrobbler-ipc";
+const PIPE_NAME: &str = "pano-scrobbler-etd-ipc";
 
 pub async fn commands_listener(
     ipc_callback: impl Fn(String, String) + 'static,
