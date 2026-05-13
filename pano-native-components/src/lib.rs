@@ -2,7 +2,6 @@ mod machine_uid;
 mod media_events;
 mod media_listener;
 
-#[cfg(target_os = "linux")]
 mod file_picker;
 #[cfg(target_os = "linux")]
 mod tray;
@@ -35,6 +34,8 @@ use crate::media_events::{MetadataInfo, PlaybackInfo};
 
 static INCOMING_PLAYER_EVENT_TX: LazyLock<Mutex<Option<mpsc::Sender<IncomingEvent>>>> =
     LazyLock::new(|| Mutex::new(None));
+
+static HWND: LazyLock<Mutex<Option<i64>>> = LazyLock::new(|| Mutex::new(None));
 
 #[unsafe(no_mangle)]
 pub extern "system" fn Java_dev_etorix_panoscrobbler_PanoNativeComponents_refreshSessions(
@@ -228,7 +229,20 @@ pub extern "system" fn Java_dev_etorix_panoscrobbler_PanoNativeComponents_applyD
     handle: jlong,
 ) {
     #[cfg(target_os = "windows")]
-    windows_utils::apply_dark_mode_to_window(handle);
+    {
+        let mut hwnd = HWND.lock().unwrap();
+        *hwnd = Some(handle);
+        windows_utils::apply_dark_mode_to_window(handle);
+    }
+}
+
+#[unsafe(no_mangle)]
+pub extern "system" fn Java_dev_etorix_panoscrobbler_PanoNativeComponents_setHwndWindows(
+    env: EnvUnowned,
+    class: JClass,
+    handle: jlong,
+) {
+    Java_dev_etorix_panoscrobbler_PanoNativeComponents_applyDarkModeWindows(env, class, handle);
 }
 
 #[unsafe(no_mangle)]
@@ -392,7 +406,6 @@ fn call_java_fn(env: &mut jni::Env, event: &JniCallback) -> Option<bool> {
             )
         }
 
-        #[cfg(target_os = "linux")]
         JniCallback::FilePicked(req_id, uri) => {
             let uri = JString::from_str(env, uri).unwrap();
 
@@ -527,31 +540,52 @@ pub extern "system" fn Java_dev_etorix_panoscrobbler_PanoNativeComponents_fileCh
     file_name: JString,
     filters: JObjectArray<JString>,
 ) {
-    #[cfg(target_os = "linux")]
-    {
-        unowned_env
-            .with_env(|env| -> jni::errors::Result<()> {
-                let title: String = title.mutf8_chars(env)?.into();
-                let file_name: String = file_name.mutf8_chars(env)?.into();
-                let mut filters_vec = Vec::new();
+    unowned_env
+        .with_env(|env| -> jni::errors::Result<()> {
+            let title: String = title.mutf8_chars(env)?.into();
+            let file_name: String = file_name.mutf8_chars(env)?.into();
+            let mut extensions_vec = Vec::new();
 
-                for i in 0..filters.len(env)? {
-                    let filter = filters.get_element(env, i)?.to_string();
-                    filters_vec.push(filter);
-                }
+            for i in 0..filters.len(env)? {
+                let filter = filters.get_element(env, i)?.to_string();
+                extensions_vec.push(filter);
+            }
 
-                let event = IncomingEvent::LaunchFilePicker(
-                    request_id,
-                    save,
-                    title,
-                    file_name,
-                    filters_vec,
-                );
-                send_incoming_event(event);
-                Ok(())
-            })
-            .resolve::<jni::errors::ThrowRuntimeExAndDefault>();
-    }
+            let hwnd = (*HWND.lock().unwrap()).unwrap_or_default();
+
+            let event = IncomingEvent::LaunchFilePicker(
+                request_id,
+                hwnd,
+                save,
+                title,
+                file_name,
+                extensions_vec,
+            );
+            send_incoming_event(event);
+            Ok(())
+        })
+        .resolve::<jni::errors::ThrowRuntimeExAndDefault>();
+}
+
+#[unsafe(no_mangle)]
+pub extern "system" fn Java_dev_etorix_panoscrobbler_PanoNativeComponents_fileChooser(
+    unowned_env: EnvUnowned,
+    class: JClass,
+    request_id: jint,
+    save: jboolean,
+    title: JString,
+    file_name: JString,
+    filters: JObjectArray<JString>,
+) {
+    Java_dev_etorix_panoscrobbler_PanoNativeComponents_fileChooserLinux(
+        unowned_env,
+        class,
+        request_id,
+        save,
+        title,
+        file_name,
+        filters,
+    );
 }
 
 #[unsafe(no_mangle)]
@@ -565,4 +599,21 @@ pub extern "system" fn Java_dev_etorix_panoscrobbler_PanoNativeComponents_autoSt
         let event = IncomingEvent::AutoStart(add);
         send_incoming_event(event);
     }
+}
+
+#[unsafe(no_mangle)]
+pub extern "system" fn Java_dev_etorix_panoscrobbler_PanoNativeComponents_openUrl(
+    mut unowned_env: EnvUnowned,
+    _class: JClass,
+    url: JString,
+) {
+    unowned_env
+        .with_env(|env| -> jni::errors::Result<()> {
+            let url: String = url.mutf8_chars(env)?.into();
+
+            send_incoming_event(IncomingEvent::OpenUrl(url));
+
+            Ok(())
+        })
+        .resolve::<jni::errors::ThrowRuntimeExAndDefault>();
 }

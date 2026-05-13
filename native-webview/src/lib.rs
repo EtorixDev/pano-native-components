@@ -1,5 +1,13 @@
+#[cfg(target_os = "linux")]
+mod gtk4_loop;
+#[cfg(target_os = "windows")]
 mod tao_loop;
 mod webview_event;
+
+#[cfg(target_os = "linux")]
+use gtk4_loop as platform_loop;
+#[cfg(target_os = "windows")]
+use tao_loop as platform_loop;
 
 use jni::EnvUnowned;
 use jni::jni_sig;
@@ -27,7 +35,7 @@ pub extern "system" fn Java_dev_etorix_panoscrobbler_DesktopWebView_startEventLo
     unowned_env
         .with_env(|env| -> jni::errors::Result<()> {
             let jvm = env.get_java_vm()?;
-            tao_loop::event_loop(move |event| {
+            platform_loop::event_loop(move |event| {
                 jvm.attach_current_thread(|env| -> jni::errors::Result<()> {
                     let class = jni_str!("dev/etorix/panoscrobbler/DesktopWebView");
 
@@ -82,7 +90,7 @@ pub extern "system" fn Java_dev_etorix_panoscrobbler_DesktopWebView_launchWebVie
             let data_dir: String = data_dir.mutf8_chars(env)?.into();
             let proxy_host: String = proxy_host.mutf8_chars(env)?.into();
 
-            tao_loop::send_incoming_webview_event(WebViewIncomingEvent::LaunchWebView(
+            platform_loop::send_incoming_webview_event(WebViewIncomingEvent::LaunchWebView(
                 url,
                 callback_prefix,
                 cookies_url,
@@ -100,5 +108,21 @@ pub extern "system" fn Java_dev_etorix_panoscrobbler_DesktopWebView_deleteAndQui
     _env: EnvUnowned,
     _class: JClass,
 ) {
-    tao_loop::send_incoming_webview_event(WebViewIncomingEvent::DeleteAndQuit);
+    platform_loop::send_incoming_webview_event(WebViewIncomingEvent::Quit);
+}
+
+#[unsafe(no_mangle)]
+pub extern "system" fn Java_dev_etorix_panoscrobbler_DesktopWebView_close(
+    _env: EnvUnowned,
+    _class: JClass,
+) {
+    platform_loop::send_incoming_webview_event(WebViewIncomingEvent::Close);
+}
+
+#[unsafe(no_mangle)]
+pub extern "system" fn Java_dev_etorix_panoscrobbler_DesktopWebView_quit(
+    _env: EnvUnowned,
+    _class: JClass,
+) {
+    platform_loop::send_incoming_webview_event(WebViewIncomingEvent::Quit);
 }
