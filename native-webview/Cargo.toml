@@ -13,8 +13,14 @@ jni = "0.22"
 [target.'cfg(target_os = "windows")'.dependencies]
 wry = { version = "0.55", default-features = false, features = ["os-webview"] }
 tao = "0.35"
+time = { version = "=0.3.51", default-features = false, features = [
+    "std",
+    "parsing",
+    "formatting",
+    "macros",
+] }
 
 [target.'cfg(target_os = "linux")'.dependencies]
 webkit6 = "0.6"
-gtk4 = "0.11"
+gtk4 = { version = "0.11", features = ["v4_10"] }
 async-channel = "2"
