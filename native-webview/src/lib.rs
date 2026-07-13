@@ -80,6 +80,7 @@ pub extern "system" fn Java_com_arn_scrobble_DesktopWebView_launchWebView(
     callback_prefix: JString,
     cookies_url: JString,
     data_dir: JString,
+    proxy_type: jint,
     proxy_host: JString,
     proxy_port: jint,
 ) {
@@ -90,12 +91,21 @@ pub extern "system" fn Java_com_arn_scrobble_DesktopWebView_launchWebView(
             let cookies_url: String = cookies_url.mutf8_chars(env)?.into();
             let data_dir: String = data_dir.mutf8_chars(env)?.into();
             let proxy_host: String = proxy_host.mutf8_chars(env)?.into();
+            let proxy_type_string = match proxy_type {
+                1 => "http",
+                2 => "socks5",
+                _ => {
+                    eprintln!("Invalid proxy type: {proxy_type}");
+                    ""
+                }
+            };
 
             platform_loop::send_incoming_webview_event(WebViewIncomingEvent::LaunchWebView(
                 url,
                 callback_prefix,
                 cookies_url,
                 data_dir,
+                proxy_type_string.to_string(),
                 proxy_host,
                 proxy_port,
             ));

@@ -60,13 +60,14 @@ pub fn event_loop(jni_callback: impl Fn(WebViewOutgoingEvent) + 'static) {
                             callback_prefix,
                             cookies_url,
                             _data_dir,
+                            proxy_type,
                             proxy_host,
                             proxy_port,
                         ) => {
                             let session = NetworkSession::new_ephemeral();
 
-                            if !proxy_host.is_empty() && proxy_port != 0 {
-                                let proxy_uri = format!("socks5://{}:{}", proxy_host, proxy_port);
+                            if !proxy_type.is_empty() && !proxy_host.is_empty() && proxy_port != 0 {
+                                let proxy_uri = format!("{proxy_type}://{proxy_host}:{proxy_port}");
                                 let proxy_settings =
                                     NetworkProxySettings::new(Some(&proxy_uri), &[] as &[&str]);
                                 session.set_proxy_settings(

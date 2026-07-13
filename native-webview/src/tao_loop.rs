@@ -5,7 +5,7 @@ use tao::{
     event_loop::{ControlFlow, EventLoopBuilder, EventLoopProxy},
     window::{Window, WindowBuilder},
 };
-use wry::{ProxyConfig, ProxyEndpoint, WebContext, WebView, WebViewBuilder, dpi::LogicalSize};
+use wry::{WebContext, WebView, WebViewBuilder, WebViewBuilderExtWindows, dpi::LogicalSize};
 
 use crate::webview_event::{WebViewIncomingEvent, WebViewOutgoingEvent};
 
@@ -36,19 +36,8 @@ pub fn get_cookies_for_url(webview: &WebView, url: &str) -> Vec<String> {
 }
 
 pub fn event_loop(jni_callback: impl Fn(WebViewOutgoingEvent) + 'static) {
-    #[cfg(target_os = "linux")]
-    use tao::platform::unix::EventLoopBuilderExtUnix;
-
-    #[cfg(target_os = "linux")]
-    let event_loop = EventLoopBuilder::<WebViewIncomingEvent>::with_user_event()
-        .with_any_thread(true)
-        // .with_app_id("pano-scrobbler")
-        .build();
-
-    #[cfg(target_os = "windows")]
     use tao::platform::windows::EventLoopBuilderExtWindows;
 
-    #[cfg(target_os = "windows")]
     let event_loop = EventLoopBuilder::<WebViewIncomingEvent>::with_user_event()
         .with_any_thread(true)
         .build();
@@ -75,6 +64,7 @@ pub fn event_loop(jni_callback: impl Fn(WebViewOutgoingEvent) + 'static) {
                 callback_prefix,
                 cookies_url,
                 data_dir,
+                proxy_type,
                 proxy_host,
                 proxy_port,
             )) => {
@@ -104,22 +94,14 @@ pub fn event_loop(jni_callback: impl Fn(WebViewOutgoingEvent) + 'static) {
                         }
                     });
 
-                if !proxy_host.is_empty() && proxy_port != 0 {
-                    builder = builder.with_proxy_config(ProxyConfig::Socks5(ProxyEndpoint {
-                        host: proxy_host.clone(),
-                        port: proxy_port.to_string(),
-                    }));
+                if !proxy_type.is_empty() && !proxy_host.is_empty() && proxy_port != 0 {
+                    builder = builder.with_additional_browser_args(format!(
+                        "--proxy-server={}://{}:{}",
+                        proxy_type, proxy_host, proxy_port
+                    ))
                 }
 
-                #[cfg(target_os = "windows")]
                 let webview = builder.build(&window);
-                #[cfg(target_os = "linux")]
-                let webview = {
-                    use tao::platform::unix::WindowExtUnix;
-                    use wry::WebViewBuilderExtUnix;
-                    let vbox = window.default_vbox().unwrap();
-                    builder.build_gtk(vbox)
-                };
 
                 match webview {
                     Ok(webview) => {
