@@ -25,7 +25,7 @@ public class PanoNativeComponents {
 
     static native void notify(String title, String body);
 
-    static native void setTrayLinux(String tooltip, byte[] pngBytes, boolean invert, String[] menuItemIds, String[] menuItemTexts);
+    static native void setTray(String tooltip, byte[] pngBytes, boolean invert, String[] menuItemIds, String[] menuItemTexts);
 
     static native String getMachineId();
 
@@ -67,7 +67,7 @@ public class PanoNativeComponents {
     ));
 
     public static void main(String[] args) {
-        setHwndWindows(0);
+        applyWindowEffects(0, false, false);
         setEnvironmentVariable("GDK_BACKEND", "x11");
 
         sendIpcCommand("testCommand", "testArg");
@@ -112,7 +112,7 @@ public class PanoNativeComponents {
                     argb[i + 2] = (byte) 0xbe;
                     argb[i + 3] = (byte) 0xbe;
                 }
-                setTrayLinux("", argb, false, menuItemIds, menuItemTexts);
+                setTray("", argb, false, menuItemIds, menuItemTexts);
 
                 // refreshSessions();
 
