@@ -37,7 +37,9 @@ public class PanoNativeComponents {
 
     static native void fileChooser(int requestId, boolean save, String title, String fileName, String[] filters);
 
-    static native void onFilePicked(int requestId, String uri);
+    public static void onFilePicked(int requestId, String uri) {
+        System.out.println("onFilePicked: " + requestId + " " + uri);
+    }
 
     static native boolean updateDiscordActivity(String clientId, String name, String state, String details, String largeText, long startTime, long endTime, String artUrl, String detailsUrl, boolean isPlaying, int statusLine, String buttonText, String buttonUrl);
 

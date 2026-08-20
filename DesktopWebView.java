@@ -6,7 +6,7 @@ package dev.etorix.panoscrobbler;
 public class DesktopWebView {
     private static native void startEventLoop();
 
-    static native void launchWebView(String url, String callbackPrefix, String cookiesUrl, String dataDir, String proxyHost, int proxyPort);
+    static native void launchWebView(String url, String callbackPrefix, String cookiesUrl, String dataDir, int proxyType, String proxyHost, int proxyPort);
 
     static native void deleteAndQuit();
 
@@ -20,6 +20,7 @@ public class DesktopWebView {
                 "callbackPrefix",
                 "https://fonts.google.com",
                 "/tmp/webview",
+                0,
                 "",
                 0
         );
