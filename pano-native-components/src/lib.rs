@@ -3,14 +3,13 @@ mod media_events;
 mod media_listener;
 
 mod file_picker;
-#[cfg(target_os = "linux")]
 mod tray;
 
 mod discord_rpc;
 mod ipc;
 mod jni_callback;
+mod myutils;
 mod theme_observer;
-mod windows_utils;
 
 use ftail::Ftail;
 use jni::sys::{jboolean, jint, jlong};
@@ -163,7 +162,7 @@ pub extern "system" fn Java_dev_etorix_panoscrobbler_PanoNativeComponents_notify
 }
 
 #[unsafe(no_mangle)]
-pub extern "system" fn Java_dev_etorix_panoscrobbler_PanoNativeComponents_setTrayLinux(
+pub extern "system" fn Java_dev_etorix_panoscrobbler_PanoNativeComponents_setTray(
     mut unowned_env: EnvUnowned,
     _class: JClass,
     tooltip: JString,
@@ -172,41 +171,38 @@ pub extern "system" fn Java_dev_etorix_panoscrobbler_PanoNativeComponents_setTra
     menu_item_ids: JObjectArray<JString>,
     menu_item_texts: JObjectArray<JString>,
 ) {
-    #[cfg(target_os = "linux")]
-    {
-        unowned_env
-            .with_env(|env| -> jni::errors::Result<()> {
-                use jni::objects::ReleaseMode;
+    unowned_env
+        .with_env(|env| -> jni::errors::Result<()> {
+            use jni::objects::ReleaseMode;
 
-                use crate::tray::{PanoTrayData, update_tray};
+            use crate::tray::{PanoTrayData, update_tray};
 
-                let tooltip: String = tooltip.mutf8_chars(env)?.into();
+            let tooltip: String = tooltip.mutf8_chars(env)?.into();
 
-                let png_bytes_rust =
-                    unsafe { png_bytes.get_elements(env, ReleaseMode::NoCopyBack) }?.to_vec();
-                // convert vec<i8> to vec<u8>
-                let png_bytes_rust = png_bytes_rust.into_iter().map(|b| b as u8).collect();
+            let png_bytes_rust =
+                unsafe { png_bytes.get_elements(env, ReleaseMode::NoCopyBack) }?.to_vec();
+            // convert vec<i8> to vec<u8>
+            let png_bytes_rust = png_bytes_rust.into_iter().map(|b| b as u8).collect();
 
-                let len = menu_item_ids.len(env)?;
-                let mut menu_items = Vec::<(String, String)>::with_capacity(len);
+            let len = menu_item_ids.len(env)?;
+            let mut menu_items = Vec::<(String, String)>::with_capacity(len);
 
-                for i in 0..len {
-                    let id = menu_item_ids.get_element(env, i)?.to_string();
-                    let text = menu_item_texts.get_element(env, i)?.to_string();
+            for i in 0..len {
+                let id = menu_item_ids.get_element(env, i)?.to_string();
+                let text = menu_item_texts.get_element(env, i)?.to_string();
 
-                    menu_items.push((id, text));
-                }
+                menu_items.push((id, text));
+            }
 
-                update_tray(PanoTrayData {
-                    tooltip,
-                    png_bytes: png_bytes_rust,
-                    invert,
-                    menu_items,
-                });
-                Ok(())
-            })
-            .resolve::<jni::errors::ThrowRuntimeExAndDefault>();
-    }
+            update_tray(PanoTrayData {
+                tooltip,
+                png_bytes: png_bytes_rust,
+                invert,
+                menu_items,
+            });
+            Ok(())
+        })
+        .resolve::<jni::errors::ThrowRuntimeExAndDefault>();
 }
 
 #[unsafe(no_mangle)]
@@ -223,26 +219,35 @@ pub extern "system" fn Java_dev_etorix_panoscrobbler_PanoNativeComponents_getMac
 }
 
 #[unsafe(no_mangle)]
-pub extern "system" fn Java_dev_etorix_panoscrobbler_PanoNativeComponents_applyDarkModeWindows(
+pub extern "system" fn Java_dev_etorix_panoscrobbler_PanoNativeComponents_applyWindowEffects(
     _env: EnvUnowned,
     _class: JClass,
     handle: jlong,
+    is_dark: jboolean,
+    is_blur: jboolean,
 ) {
     #[cfg(target_os = "windows")]
     {
         let mut hwnd = HWND.lock().unwrap();
         *hwnd = Some(handle);
-        windows_utils::apply_dark_mode_to_window(handle);
-    }
-}
 
-#[unsafe(no_mangle)]
-pub extern "system" fn Java_dev_etorix_panoscrobbler_PanoNativeComponents_setHwndWindows(
-    env: EnvUnowned,
-    class: JClass,
-    handle: jlong,
-) {
-    Java_dev_etorix_panoscrobbler_PanoNativeComponents_applyDarkModeWindows(env, class, handle);
+        myutils::apply_dark_mode_to_window(handle, is_dark);
+
+        if is_blur {
+            myutils::apply_blur_to_window(handle, true);
+        }
+    }
+
+    #[cfg(target_os = "linux")]
+    {
+        if is_blur {
+            let window_id: u32 = handle.try_into().unwrap();
+
+            myutils::apply_blur_to_window(window_id).unwrap_or_else(|e| {
+                log::error!("Failed to apply blur to window: {e}");
+            });
+        }
+    }
 }
 
 #[unsafe(no_mangle)]
@@ -280,7 +285,7 @@ pub extern "system" fn Java_dev_etorix_panoscrobbler_PanoNativeComponents_isFile
         unowned_env
             .with_env(|env| -> jni::errors::Result<jboolean> {
                 let path: String = path.mutf8_chars(env)?.into();
-                Ok(windows_utils::is_file_locked(&path))
+                Ok(myutils::is_file_locked(&path))
             })
             .resolve::<jni::errors::ThrowRuntimeExAndDefault>()
     }
@@ -294,7 +299,7 @@ pub extern "system" fn Java_dev_etorix_panoscrobbler_PanoNativeComponents_isFile
 pub fn send_incoming_event(incoming_event: IncomingEvent) {
     let tx = INCOMING_PLAYER_EVENT_TX.lock().unwrap();
 
-    log::debug!("Sending message: {:?}", &incoming_event);
+    log::debug!("Sending message: {:?}", incoming_event);
 
     if let Some(ref sender) = *tx {
         match sender.try_send(incoming_event) {
@@ -395,7 +400,6 @@ fn call_java_fn(env: &mut jni::Env, event: &JniCallback) -> Option<bool> {
             )
         }
 
-        #[cfg(target_os = "linux")]
         JniCallback::TrayItemClicked(item_id) => {
             let item_id = JString::from_str(env, item_id).unwrap();
             env.call_static_method(
@@ -451,6 +455,9 @@ pub extern "system" fn Java_dev_etorix_panoscrobbler_PanoNativeComponents_startL
     mut unowned_env: EnvUnowned,
     _class: JClass,
 ) {
+    #[cfg(target_os = "windows")]
+    myutils::enable_dark_mode_for_process();
+
     unowned_env
         .with_env(|env| -> jni::errors::Result<()> {
             let jvm = env.get_java_vm()?;

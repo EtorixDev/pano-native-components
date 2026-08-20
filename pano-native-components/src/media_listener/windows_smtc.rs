@@ -1,7 +1,7 @@
-use crate::INCOMING_PLAYER_EVENT_TX;
 use crate::file_picker::launch_file_picker;
 use crate::jni_callback::JniCallback;
 use crate::media_events::{IncomingEvent, MetadataInfo, PlaybackInfo, PlaybackState, SessionInfo};
+use crate::{INCOMING_PLAYER_EVENT_TX, tray};
 use crate::{ipc, theme_observer};
 use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, Mutex, OnceLock};
@@ -32,7 +32,7 @@ static OUTGOING_PLAYER_EVENT_TX: OnceLock<mpsc::Sender<JniCallback>> = OnceLock:
 fn send_outgoing_event(outgoing_event: JniCallback) {
     let tx = OUTGOING_PLAYER_EVENT_TX.get();
 
-    log::debug!("Sending outgoing message: {:?}", &outgoing_event);
+    log::debug!("Sending outgoing message: {:?}", outgoing_event);
 
     if let Some(sender) = tx {
         match sender.try_send(outgoing_event) {
@@ -56,6 +56,8 @@ pub async fn listener(
     // there is a lot of event spam on Windows, use a larger buffer
     let (outgoing_tx, mut outgoing_rx) = mpsc::channel(100);
     let outgoing_tx_clone = outgoing_tx.clone();
+    let outgoing_tx_clone2 = outgoing_tx.clone();
+
     OUTGOING_PLAYER_EVENT_TX.set(outgoing_tx).unwrap();
 
     let mut app_names_cache = HashMap::<String, String>::new();
@@ -192,7 +194,8 @@ pub async fn listener(
         session_events,
         ipc_commands,
         outgoing_events,
-        theme_observer_future
+        theme_observer_future,
+        tray::tray_listener(outgoing_tx_clone2)
     )?;
 
     Ok(())
