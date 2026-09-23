@@ -9,7 +9,6 @@ mod discord_rpc;
 mod ipc;
 mod jni_callback;
 mod myutils;
-mod theme_observer;
 
 use ftail::Ftail;
 use jni::sys::{jboolean, jint, jlong};
@@ -17,7 +16,7 @@ use jni::sys::{jboolean, jint, jlong};
 use jni::EnvUnowned;
 use jni::jni_sig;
 use jni::jni_str;
-use jni::objects::{JByteArray, JClass, JObjectArray, JString};
+use jni::objects::{JClass, JObjectArray, JString};
 
 use jni_callback::JniCallback;
 use log::LevelFilter;
@@ -73,7 +72,7 @@ pub extern "system" fn Java_dev_etorix_panoscrobbler_PanoNativeComponents_setLog
 }
 
 #[unsafe(no_mangle)]
-pub extern "system" fn Java_dev_etorix_panoscrobbler_PanoNativeComponents_stopListeningMedia(
+pub extern "system" fn Java_dev_etorix_panoscrobbler_PanoNativeComponents_stopEventLoop(
     _env: EnvUnowned,
     _class: JClass,
 ) {
@@ -165,24 +164,19 @@ pub extern "system" fn Java_dev_etorix_panoscrobbler_PanoNativeComponents_notify
 pub extern "system" fn Java_dev_etorix_panoscrobbler_PanoNativeComponents_setTray(
     mut unowned_env: EnvUnowned,
     _class: JClass,
+    icons_dir: JString,
+    icon_name: JString,
     tooltip: JString,
-    png_bytes: JByteArray,
-    invert: jboolean,
     menu_item_ids: JObjectArray<JString>,
     menu_item_texts: JObjectArray<JString>,
 ) {
     unowned_env
         .with_env(|env| -> jni::errors::Result<()> {
-            use jni::objects::ReleaseMode;
-
             use crate::tray::{PanoTrayData, update_tray};
 
             let tooltip: String = tooltip.mutf8_chars(env)?.into();
 
-            let png_bytes_rust =
-                unsafe { png_bytes.get_elements(env, ReleaseMode::NoCopyBack) }?.to_vec();
-            // convert vec<i8> to vec<u8>
-            let png_bytes_rust = png_bytes_rust.into_iter().map(|b| b as u8).collect();
+            let icons_dir: String = icons_dir.mutf8_chars(env)?.into();
 
             let len = menu_item_ids.len(env)?;
             let mut menu_items = Vec::<(String, String)>::with_capacity(len);
@@ -194,10 +188,12 @@ pub extern "system" fn Java_dev_etorix_panoscrobbler_PanoNativeComponents_setTra
                 menu_items.push((id, text));
             }
 
+            let icon_name: String = icon_name.mutf8_chars(env)?.into();
+
             update_tray(PanoTrayData {
                 tooltip,
-                png_bytes: png_bytes_rust,
-                invert,
+                icons_dir,
+                icon_name,
                 menu_items,
             });
             Ok(())
@@ -296,6 +292,22 @@ pub extern "system" fn Java_dev_etorix_panoscrobbler_PanoNativeComponents_isFile
     }
 }
 
+#[unsafe(no_mangle)]
+pub extern "system" fn Java_dev_etorix_panoscrobbler_PanoNativeComponents_attachParentConsoleWindows(
+    _unowned_env: EnvUnowned,
+    _class: JClass,
+) -> jboolean {
+    #[cfg(target_os = "windows")]
+    {
+        myutils::attach_parent_console()
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    {
+        false
+    }
+}
+
 pub fn send_incoming_event(incoming_event: IncomingEvent) {
     let tx = INCOMING_PLAYER_EVENT_TX.lock().unwrap();
 
@@ -372,6 +384,7 @@ fn call_java_fn(env: &mut jni::Env, event: &JniCallback) -> Option<bool> {
                 state,
                 position,
                 can_skip,
+                can_change_channel,
             },
         ) => {
             let app_id = JString::from_str(env, app_id).unwrap();
@@ -379,12 +392,13 @@ fn call_java_fn(env: &mut jni::Env, event: &JniCallback) -> Option<bool> {
             env.call_static_method(
                 class,
                 jni_str!("onPlaybackStateChanged"),
-                jni_sig!("(Ljava/lang/String;Ljava/lang/String;JZ)V"),
+                jni_sig!("(Ljava/lang/String;Ljava/lang/String;JZZ)V"),
                 &[
                     (&app_id).into(),
                     (&state).into(),
                     (*position).into(),
                     (*can_skip).into(),
+                    (*can_change_channel).into(),
                 ],
             )
         }
@@ -451,12 +465,12 @@ fn call_java_fn(env: &mut jni::Env, event: &JniCallback) -> Option<bool> {
 }
 
 #[unsafe(no_mangle)]
-pub extern "system" fn Java_dev_etorix_panoscrobbler_PanoNativeComponents_startListeningMedia(
+pub extern "system" fn Java_dev_etorix_panoscrobbler_PanoNativeComponents_startEventLoop(
     mut unowned_env: EnvUnowned,
     _class: JClass,
 ) {
     #[cfg(target_os = "windows")]
-    myutils::enable_dark_mode_for_process();
+    myutils::set_process_flags();
 
     unowned_env
         .with_env(|env| -> jni::errors::Result<()> {
@@ -609,18 +623,21 @@ pub extern "system" fn Java_dev_etorix_panoscrobbler_PanoNativeComponents_autoSt
 }
 
 #[unsafe(no_mangle)]
-pub extern "system" fn Java_dev_etorix_panoscrobbler_PanoNativeComponents_openUrl(
+pub extern "system" fn Java_dev_etorix_panoscrobbler_PanoNativeComponents_openUrlLinux(
     mut unowned_env: EnvUnowned,
     _class: JClass,
     url: JString,
 ) {
-    unowned_env
-        .with_env(|env| -> jni::errors::Result<()> {
-            let url: String = url.mutf8_chars(env)?.into();
+    #[cfg(target_os = "linux")]
+    {
+        unowned_env
+            .with_env(|env| -> jni::errors::Result<()> {
+                let url: String = url.mutf8_chars(env)?.into();
 
-            send_incoming_event(IncomingEvent::OpenUrl(url));
+                send_incoming_event(IncomingEvent::OpenUrl(url));
 
-            Ok(())
-        })
-        .resolve::<jni::errors::ThrowRuntimeExAndDefault>();
+                Ok(())
+            })
+            .resolve::<jni::errors::ThrowRuntimeExAndDefault>();
+    }
 }

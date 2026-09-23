@@ -8,7 +8,7 @@ use windows::Win32::Graphics::Dwm::{
 };
 use windows::Win32::System::LibraryLoader::{GetProcAddress, LoadLibraryW};
 use windows::Win32::UI::Controls::MARGINS;
-use windows_core::{PCSTR, w};
+use windows::core::{PCSTR, w};
 use windows_version::OsVersion;
 
 pub fn apply_dark_mode_to_window(handle: i64, is_dark: bool) {
@@ -94,7 +94,7 @@ pub fn is_file_locked(path: &str) -> bool {
     }
 }
 
-pub fn enable_dark_mode_for_process() {
+pub fn set_process_flags() {
     // Ordinals from uxtheme.dll (undocumented, stable since Win10 1903)
     const ORD_SET_PREFERRED_APP_MODE: usize = 135;
     type FnSetPreferredAppMode = unsafe extern "system" fn(i32) -> i32;
@@ -110,4 +110,13 @@ pub fn enable_dark_mode_for_process() {
             set_preferred_app_mode(1);
         }
     }
+}
+
+unsafe extern "system" {
+    fn AttachConsole(dw_process_id: u32) -> i32;
+}
+
+pub fn attach_parent_console() -> bool {
+    const ATTACH_PARENT_PROCESS: u32 = 0xFFFF_FFFF; // (DWORD)-1
+    unsafe { AttachConsole(ATTACH_PARENT_PROCESS) != 0 }
 }

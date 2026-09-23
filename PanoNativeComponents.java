@@ -9,13 +9,13 @@ import java.util.Arrays;
 public class PanoNativeComponents {
     private static native void setLogFilePath(String path);
 
-    private static native void startListeningMedia();
+    private static native void startEventLoop();
 
     static native void setEnvironmentVariable(String key, String value);
 
     static native void refreshSessions();
 
-    static native void stopListeningMedia();
+    static native void stopEventLoop();
 
     static native void skip(String appId);
 
@@ -25,7 +25,7 @@ public class PanoNativeComponents {
 
     static native void notify(String title, String body);
 
-    static native void setTray(String tooltip, byte[] pngBytes, boolean invert, String[] menuItemIds, String[] menuItemTexts);
+    static native void setTray(String iconsDir, String iconName, String tooltip, String[] menuItemIds, String[] menuItemTexts);
 
     static native String getMachineId();
 
@@ -47,7 +47,9 @@ public class PanoNativeComponents {
 
     static native boolean autoStartLinux(boolean add);
 
-    static native void openUrl(String url);
+    static native void openUrlLinux(String url);
+
+    static native boolean attachParentConsoleWindows();
 
     static {
         System.loadLibrary("pano_native_components");
@@ -84,9 +86,9 @@ public class PanoNativeComponents {
                         e.printStackTrace();
                     }
                     
-                    System.out.println("startListeningMedia");
-                    startListeningMedia();
-                    System.out.println("startListeningMedia finished");
+                    System.out.println("startEventLoop");
+                    startEventLoop();
+                    System.out.println("startEventLoop finished");
                 }
             }
         }).start();
@@ -106,15 +108,7 @@ public class PanoNativeComponents {
                 String menuItemIds[] = new String[] { "1", "2", "3", "Separator", "4" };
                 String menuItemTexts[] = new String[] { "📝 item_1", "item_2", "item_3", "", "item_4" };
 
-                int size = 8;
-                byte[] argb = new byte[size * size * 4];
-                for (int i = 0; i < argb.length; i += 4) {
-                    argb[i] = (byte) 0xff;
-                    argb[i + 1] = (byte) 0xbe;
-                    argb[i + 2] = (byte) 0xbe;
-                    argb[i + 3] = (byte) 0xbe;
-                }
-                setTray("", argb, false, menuItemIds, menuItemTexts);
+                setTray("", "idle", "", menuItemIds, menuItemTexts);
 
                 // refreshSessions();
 
@@ -142,8 +136,8 @@ public class PanoNativeComponents {
         System.out.println("onMetadataChanged: " + appId + ", " + title + ", " + artist + ", " + album + ", " + albumArtist + ", " + trackNumber + ", " + duration + ", " + artUrl + ", " + trackUrl);
     }
 
-    public static void onPlaybackStateChanged(String appId, String state, long position, boolean canSkip) {
-        System.out.println("onPlaybackStateChanged: " + appId + ", " + state + ", " + position + ", " + canSkip);
+    public static void onPlaybackStateChanged(String appId, String state, long position, boolean canSkip, boolean canChangeChannel) {
+        System.out.println("onPlaybackStateChanged: " + appId + ", " + state + ", " + position + ", " + canSkip + ", " + canChangeChannel);
     }
 
     public static void onTrayMenuItemClicked(String id) {
