@@ -245,7 +245,7 @@ pub async fn listener(
                                     Notification::new(title)
                                         .body(body.as_str())
                                         .priority(Priority::Normal)
-                                        .icon(Icon::with_names(["pano-scrobbler"]))
+                                        .icon(Icon::with_names(["pano-scrobbler-etd"]))
                                         .display_hint([DisplayHint::Tray]),
                                 )
                                 .await;
@@ -255,9 +255,9 @@ pub async fn listener(
                         if let Ok(proxy) = proxy {
                             let _ = proxy
                                 .notify(
-                                    "Pano Scrobbler",
+                                    "Pano Scrobbler ETD",
                                     0,
-                                    "pano-scrobbler",
+                                    "pano-scrobbler-etd",
                                     title,
                                     body,
                                     &[],

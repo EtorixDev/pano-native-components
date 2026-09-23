@@ -27,7 +27,7 @@ impl ksni::Tray for PanoTray {
     const MENU_ON_ACTIVATE: bool = true;
 
     fn title(&self) -> String {
-        "Pano Scrobbler".to_string()
+        "Pano Scrobbler ETD".to_string()
     }
 
     fn tool_tip(&self) -> ksni::ToolTip {

@@ -5,21 +5,23 @@ use std::path::PathBuf;
 
 use ashpd::desktop::background::Background;
 
+const APP_BINARY: &str = "pano-scrobbler-etd";
+
 fn get_exec_for_autostart() -> String {
     let self_path = std::env::current_exe().and_then(fs::canonicalize).ok();
 
     let in_path = std::env::var("PATH").ok().and_then(|path_var| {
         path_var
             .split(':')
-            .map(|dir| Path::new(dir).join("pano-scrobbler"))
+            .map(|dir| Path::new(dir).join(APP_BINARY))
             .find(|p| p.is_file())
             .and_then(|p| fs::canonicalize(p).ok())
     });
 
     match (self_path, in_path) {
-        (Some(s), Some(p)) if s == p => "pano-scrobbler".to_string(),
+        (Some(s), Some(p)) if s == p => APP_BINARY.to_string(),
         (Some(s), _) => s.to_string_lossy().into_owned(),
-        _ => "pano-scrobbler".to_string(),
+        _ => APP_BINARY.to_string(),
     }
 }
 
@@ -33,7 +35,7 @@ pub fn autostart(add: bool) {
                 .ok()
                 .map(|h| PathBuf::from(h).join(".config"))
         })
-        .map(|x| x.join("autostart/pano-scrobbler.desktop"));
+        .map(|x| x.join("autostart/pano-scrobbler-etd.desktop"));
 
     let desktop_file = match desktop_file {
         Some(path) => path,
@@ -57,13 +59,13 @@ pub fn autostart(add: bool) {
         let contents = format!(
             "[Desktop Entry]\n\
              Type=Application\n\
-             Name=Pano Scrobbler\n\
+             Name=Pano Scrobbler ETD\n\
              Comment=Feature packed music tracker\n\
              Terminal=false\n\
              Exec={exec_command}\n\
-             Icon=pano-scrobbler\n\
+             Icon={APP_BINARY}\n\
              X-GNOME-Autostart-enabled=true\n\
-             StartupWMClass=pano-scrobbler\n\
+             StartupWMClass={APP_BINARY}\n\
              Categories=AudioVideo;Audio;\n"
         );
 
@@ -86,9 +88,9 @@ pub fn autostart(add: bool) {
 
 pub async fn autostart_sandboxed(add: bool) {
     match Background::request()
-        .reason("Start Pano Scrobbler on login")
+        .reason("Start Pano Scrobbler ETD on login")
         .auto_start(add)
-        .command(["pano-scrobbler", "--minimized"])
+        .command([APP_BINARY, "--minimized"])
         .dbus_activatable(false)
         .send()
         .await
