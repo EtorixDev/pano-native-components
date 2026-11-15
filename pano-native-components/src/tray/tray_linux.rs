@@ -92,7 +92,13 @@ pub async fn tray_listener(
                 }
                 None => {
                     let tray = PanoTray { data: tray_data };
-                    match tray.disable_dbus_name(ashpd::is_sandboxed()).spawn().await {
+                    match tray
+                        .disable_dbus_name(ashpd::is_sandboxed())
+                        // the tray host may come up after us when autostarted at login
+                        .assume_sni_available(true)
+                        .spawn()
+                        .await
+                    {
                         Ok(handle) => {
                             let _ = tray_handle.set(handle);
                         }
