@@ -28,11 +28,9 @@ fn main() {
         .join(arch)
         .join("WebView2Loader.dll");
 
-    // OUT_DIR is target/<profile>/build/<pkg>-<hash>/out — walk up to target/<profile>/
     let out_dir = PathBuf::from(env::var("OUT_DIR").unwrap());
-    let target_profile_dir = out_dir.ancestors().nth(3).unwrap();
 
-    fs::copy(&src, target_profile_dir.join("WebView2Loader.dll"))
+    fs::copy(&src, out_dir.join("WebView2Loader.dll"))
         .unwrap_or_else(|e| panic!("failed to copy {src:?}: {e}"));
 
     println!("cargo:rerun-if-changed=build.rs");

@@ -26,6 +26,11 @@ jobs:
 
     - uses: dtolnay/rust-toolchain@stable
 
+    - name: Set Up Python
+      uses: actions/setup-python@v7.1.0
+      with:
+        python-version: '3.12'
+
     - name: Install dependencies
       if: runner.os == 'Linux'
       run: |
@@ -39,16 +44,17 @@ jobs:
       if: runner.os == 'Linux'
       run: cargo test -p pano-native-components
 
+    - name: Test Artifact Staging
+      env:
+        PYTHONDONTWRITEBYTECODE: '1'
+      run: python -m unittest discover -s scripts -p 'test_*.py'
+
     - name: Build Native Libraries
-      run: cargo build --release
+      run: python scripts/build_native.py --output-dir target/pano-artifacts/${{ matrix.resources-dir }} --release
 
     - name: Upload binary
       uses: actions/upload-artifact@v7
       with:
         name: libs-${{ matrix.resources-dir }}
-        path: |
-          target/release/libpano_native_components.so
-          target/release/libnative_webview.so
-          target/release/pano_native_components.dll
-          target/release/native_webview.dll
-          target/release/WebView2Loader.dll
+        path: target/pano-artifacts/${{ matrix.resources-dir }}/
+        if-no-files-found: error

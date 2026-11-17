@@ -4,36 +4,44 @@ A JNI lib, used for accessing some native APIs on desktop, that are not possible
 
 ### Build
 
+Build the runtime artifact bundle with Python 3 and Cargo:
+
 ```sh
-cargo build --release
+python scripts/build_native.py --output-dir target/pano-artifacts --release
 ```
 
-Linux may need distro specific dev dependencies for webkit6
+The helper stages both native libraries and the Windows WebView2 loader from
+Cargo's reported paths. Cargo build options such as `--target` and `--profile`
+can be passed to the helper. All required runtime libraries must exist and be
+nonempty before the bundle is copied.
+
+Linux may need distro-specific development dependencies for webkit6.
 
 ### Test
 
 ```sh
 javac -h . PanoNativeComponents.java
 
-cargo build --release && javac -d . PanoNativeComponents.java && java -Djava.library.path=target/release/ dev.etorix.panoscrobbler.PanoNativeComponents
+python scripts/build_native.py --output-dir target/pano-artifacts --release && javac -d . PanoNativeComponents.java && java -Djava.library.path=target/pano-artifacts/ dev.etorix.panoscrobbler.PanoNativeComponents
 ```
 
 or (if Powershell)
 
 ```sh
-cargo build --release && javac -d . PanoNativeComponents.java && java "-Djava.library.path=target/release/" dev.etorix.panoscrobbler.PanoNativeComponents
+python scripts/build_native.py --output-dir target/pano-artifacts --release && javac -d . PanoNativeComponents.java && java "-Djava.library.path=target/pano-artifacts/" dev.etorix.panoscrobbler.PanoNativeComponents
 ```
 
 ### Package
 
 ```sh
-cp target/release/pano_native_components.dll pano-scrobbler-dir/composeApp/resources/windows-x64/
-cp target/release/native_webview.dll pano-scrobbler-dir/composeApp/resources/windows-x64/
+cp target/pano-artifacts/pano_native_components.dll pano-scrobbler-dir/desktopApp/resources/windows-x64/
+cp target/pano-artifacts/native_webview.dll pano-scrobbler-dir/desktopApp/resources/windows-x64/
+cp target/pano-artifacts/WebView2Loader.dll pano-scrobbler-dir/desktopApp/resources/windows-x64/
 ```
 
 ```sh
-cp target/release/libpano_native_components.so pano-scrobbler-dir/composeApp/resources/linux-x64/
-cp target/release/libnative_webview.so pano-scrobbler-dir/composeApp/resources/linux-x64/
+cp target/pano-artifacts/libpano_native_components.so pano-scrobbler-dir/desktopApp/resources/linux-x64/
+cp target/pano-artifacts/libnative_webview.so pano-scrobbler-dir/desktopApp/resources/linux-x64/
 ```
 
 
