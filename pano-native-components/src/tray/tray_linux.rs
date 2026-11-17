@@ -3,9 +3,11 @@ use crate::tray::OUTGOING_TRAY_EVENT_TX;
 use crate::tray::PanoTrayData;
 use crate::tray::TRAY_DATA_TX;
 use crate::tray::send_tray_click;
+use futures_util::StreamExt;
 use ksni::{MenuItem, TrayMethods, menu::StandardItem};
-use std::sync::OnceLock;
-use tokio::sync::mpsc;
+use tokio::sync::{mpsc, watch};
+
+const WATCHER_NAME: &str = "org.kde.StatusNotifierWatcher";
 
 struct PanoTray {
     pub data: PanoTrayData,
@@ -72,42 +74,102 @@ impl ksni::Tray for PanoTray {
 pub async fn tray_listener(
     callback_sender: mpsc::Sender<JniCallback>,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let mut receiver = TRAY_DATA_TX.subscribe();
-
     OUTGOING_TRAY_EVENT_TX.set(callback_sender).unwrap();
 
-    let tray_handle: OnceLock<ksni::Handle<PanoTray>> = OnceLock::new();
+    listen_for_tray_updates(TRAY_DATA_TX.subscribe(), ashpd::is_sandboxed()).await;
+    Ok(())
+}
+
+async fn watch_tray_host() -> zbus::Result<zbus::fdo::NameOwnerChangedStream> {
+    let connection = zbus::Connection::session().await?;
+    zbus::fdo::DBusProxy::new(&connection)
+        .await?
+        .receive_name_owner_changed_with_args(&[(0, WATCHER_NAME)])
+        .await
+}
+
+async fn listen_for_tray_updates(
+    mut receiver: watch::Receiver<Option<PanoTrayData>>,
+    disable_dbus_name: bool,
+) {
+    let mut tray_handle: Option<ksni::Handle<PanoTray>> = None;
+    let mut watcher_changes = None;
 
     loop {
         let tray_data = receiver.borrow_and_update().clone();
 
         if let Some(tray_data) = tray_data {
-            match tray_handle.get() {
-                Some(handle) => {
-                    handle
-                        .update(|existing_tray| {
-                            existing_tray.data = tray_data;
-                        })
-                        .await;
+            // Subscribe before spawning. ksni subscribes after its first registration,
+            // so a watcher starting during that gap can otherwise leave a live,
+            // unregistered handle behind.
+            if watcher_changes.is_none() {
+                match watch_tray_host().await {
+                    Ok(changes) => watcher_changes = Some(changes),
+                    Err(e) => log::error!("Failed to watch tray host: {e}"),
                 }
-                None => {
-                    let tray = PanoTray { data: tray_data };
-                    match tray.disable_dbus_name(ashpd::is_sandboxed()).spawn().await {
-                        Ok(handle) => {
-                            let _ = tray_handle.set(handle);
-                        }
-                        Err(e) => {
-                            log::error!("Failed to spawn tray: {e}");
-                        }
-                    }
+            }
+
+            if let Some(handle) = &tray_handle {
+                if handle
+                    .update(|existing_tray| {
+                        existing_tray.data = tray_data.clone();
+                    })
+                    .await
+                    .is_none()
+                {
+                    tray_handle = None;
+                }
+            }
+
+            if tray_handle.is_none() {
+                let tray = PanoTray { data: tray_data };
+                match tray
+                    .disable_dbus_name(disable_dbus_name)
+                    // The tray host may come up after us when autostarted at login.
+                    .assume_sni_available(true)
+                    .spawn()
+                    .await
+                {
+                    Ok(handle) => tray_handle = Some(handle),
+                    Err(e) => log::error!("Failed to spawn tray: {e}"),
                 }
             }
         }
 
-        if receiver.changed().await.is_err() {
-            break;
+        tokio::select! {
+            event = async {
+                match &mut watcher_changes {
+                    Some(changes) => changes.next().await,
+                    None => std::future::pending().await,
+                }
+            } => {
+                match event {
+                    Some(event) => {
+                        if event.args().is_ok_and(|args| args.new_owner().is_some()) {
+                            // Close the old service before registering its replacement.
+                            // The next iteration uses the latest tray data, even if no
+                            // update arrived after the watcher started.
+                            if let Some(handle) = tray_handle.take() {
+                                handle.shutdown().await;
+                            }
+                        }
+                    }
+                    None => watcher_changes = None,
+                }
+            }
+            changed = receiver.changed() => {
+                if changed.is_err() {
+                    break;
+                }
+            }
         }
     }
 
-    Ok(())
+    if let Some(handle) = tray_handle {
+        handle.shutdown().await;
+    }
 }
+
+#[cfg(test)]
+#[path = "tray_linux_tests.rs"]
+mod tests;
